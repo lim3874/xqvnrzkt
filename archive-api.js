@@ -7,7 +7,60 @@
     var saved = JSON.parse(localStorage.getItem(key) || 'null');
     if (saved && Array.isArray(saved.items) && saved.updatedAt > snapshot.updatedAt) snapshot = saved;
   } catch (error) {}
-  var all = snapshot.items;
+  function cleanTitle(value) {
+    return String(value || '').normalize('NFKC').replace(/[\u200b-\u200d\u2060\ufeff]/g, '').replace(/\s+/g, ' ').trim();
+  }
+  function reference(value, field) {
+    var url = String(value || '').trim().replace(/[?#].*$/, '').replace(/\/+$/, '');
+    var match;
+    if (field === 'eroscripts') {
+      match = url.match(/^https?:\/\/discuss\.eroscripts\.com\/t\/([^/]+)(?:\/(\d+))?(?:\/\d+)?$/i);
+      if (match) return 'topic:' + (/^\d+$/.test(match[1]) ? match[1] : match[2]);
+    }
+    if (field === 'discord') {
+      match = url.match(/^https?:\/\/(?:www\.)?discord(?:app)?\.com\/channels\/\d+\/(\d+)(?:\/\d+)?$/i);
+      if (match) return 'thread:' + match[1];
+    }
+    return url;
+  }
+  function canonicalRows(items) {
+    var groups = new Map();
+    var result = [];
+    (Array.isArray(items) ? items : []).forEach(function (row) {
+      if (!row || typeof row !== 'object') return;
+      var title = cleanTitle(row.title);
+      var category = cleanTitle(row.category);
+      var key = category.toLowerCase() + '|' + title.toLowerCase();
+      var candidates = groups.get(key) || [];
+      // Keep distinct publications/editions even when their visible titles match.
+      var existing = title && candidates.find(function (candidate) {
+        var sameReference = ['eroscripts', 'patreon', 'discord'].some(function (field) {
+          return candidate[field] && row[field] && reference(candidate[field], field) === reference(row[field], field);
+        });
+        var sameRelease = candidate.length && candidate.releaseDate && candidate.length === row.length && candidate.releaseDate === row.releaseDate;
+        return (sameReference || sameRelease) && ['eroscripts', 'patreon', 'discord', 'length', 'releaseDate'].every(function (field) {
+          var left = reference(candidate[field], field);
+          var right = reference(row[field], field);
+          return !left || !right || left === right;
+        });
+      });
+      if (existing) {
+        // Fill missing metadata without unioning tags or replacing a chosen GIF.
+        Object.keys(row).forEach(function (field) {
+          if (!existing[field] && row[field]) existing[field] = row[field];
+        });
+        existing.title = title;
+        existing.category = category;
+      } else {
+        var copy = Object.assign({}, row, {title: title, category: category});
+        candidates.push(copy);
+        groups.set(key, candidates);
+        result.push(copy);
+      }
+    });
+    return result;
+  }
+  var all = canonicalRows(snapshot.items);
   function duration(value) {
     return String(value || '').split(':').reduce(function (sum, part) {return sum * 60 + Number(part);}, 0);
   }
@@ -80,8 +133,8 @@
       if (!data || !Array.isArray(data.items) || !data.items.length) {
         status('Showing saved archive. Retrying automatically.'); return;
       }
-      snapshot = {items: data.items, updatedAt: Date.now()};
-      all = data.items;
+      all = canonicalRows(data.items);
+      snapshot = {items: all, updatedAt: Date.now()};
       window.ARCHIVE_ALL = all;
       try {localStorage.setItem(key, JSON.stringify(snapshot));} catch (error) {}
       window.dispatchEvent(new CustomEvent('archive:data'));
