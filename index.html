@@ -99,7 +99,62 @@ th:nth-child(8) { position:relative; text-align:right; padding-right:32px; }
 
                                         .title-tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:9px; }
                                             .title-tag { display:inline-block; padding:4px 7px; border-radius:5px; background:color-mix(in srgb,var(--accent) 10%,var(--surface)); color:var(--muted); font-size:11px; font-weight:600; line-height:1; white-space:nowrap; }
-                                            </style>
+    @media (max-width: 1120px) {
+      .page { width:calc(100% - 24px); }
+      .hero { margin-inline:-12px; padding-inline:12px; }
+      .brand > div:nth-child(2) { min-width:0; }
+      .brand h1 { overflow-wrap:anywhere; }
+      .theme-button { flex:none; min-height:44px; }
+      .toolbar { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .query-wrap, .reset { grid-column:1 / -1; }
+      .toolbar input, .toolbar select, .reset { min-height:44px; font-size:16px; }
+      .table-shell { border:0; background:transparent; box-shadow:none; }
+      table, thead, tbody { display:block; width:100%; min-width:0; }
+      colgroup, thead th:not([data-sort]) { display:none; }
+      thead tr { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; margin-bottom:10px; }
+      thead th[data-sort] {
+        position:static; display:grid; place-content:center; min-height:44px;
+        padding:4px; text-align:center; white-space:normal; border:1px solid var(--border);
+        border-radius:8px; font-size:11px;
+      }
+      thead th[data-sort] .sort, thead th[data-sort] .date-heading {
+        position:static; transform:none; letter-spacing:inherit;
+      }
+      tbody { display:grid; gap:10px; }
+      tbody tr {
+        display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:8px;
+        padding:12px; border:1px solid var(--border); border-radius:12px;
+        background:var(--surface); align-items:center;
+      }
+      tbody tr > td:nth-child(n) { min-width:0; padding:0; border:0; text-align:left; }
+      tbody td.title { grid-area:1 / 1 / 2 / -1; font-size:17px; }
+      tbody td:nth-child(2) { grid-area:2 / 1 / 5 / 4; }
+      tbody td:nth-child(1) { grid-area:2 / 4 / 3 / -1; }
+      tbody td:nth-child(4) { grid-area:3 / 4 / 4 / -1; }
+      tbody td:nth-child(8) { grid-area:4 / 4 / 5 / -1; }
+      tbody td:nth-child(5) { grid-area:5 / 1 / 6 / 3; }
+      tbody td:nth-child(6) { grid-area:5 / 3 / 6 / 5; }
+      tbody td:nth-child(7) { grid-area:5 / 5 / 6 / -1; }
+      tbody td[colspan] { grid-area:1 / 1 / 2 / -1; }
+      tbody .length-value, tbody .date-value { left:0 !important; transform:none !important; }
+      tbody img.preview, tbody .preview-placeholder {
+        width:100%; height:auto; aspect-ratio:5 / 3; max-width:220px;
+      }
+      tbody td:nth-child(n) .link-button {
+        display:grid; place-items:center; min-height:44px; padding:4px; font-size:12px;
+      }
+      .title-tag { white-space:normal; overflow-wrap:anywhere; }
+      .pagination { padding-inline:4px; }
+      .page-numbers { justify-content:center; }
+      .page-button, .page-number { min-height:44px; }
+    }
+    @media (max-width: 560px) {
+      .brand { gap:8px; }
+      .brand-mark { width:34px; height:34px; }
+      .brand h1 { font-size:18px; }
+      .theme-button { padding-inline:8px; }
+    }
+  </style>
 </head>
 <body>
   <div class="page">
