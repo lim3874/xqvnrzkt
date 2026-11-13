@@ -1,15 +1,35 @@
 import { createHash } from 'node:crypto';
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { setTimeout as delay } from 'node:timers/promises';
+
+async function fetchSnapshot(url) {
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    let failure;
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(45000) });
+      if (response.ok) return await response.text();
+      failure = new Error(`Archive API returned HTTP ${response.status}`);
+      await response.body?.cancel();
+      if (![408, 429].includes(response.status) && response.status < 500) throw failure;
+    } catch (error) {
+      if (error === failure) throw error;
+      failure = error;
+    }
+    if (attempt === maxAttempts) {
+      throw new Error(`Could not fetch archive after ${attempt} attempts: ${failure.message}`, { cause: failure });
+    }
+    console.warn(`Archive request ${attempt}/${maxAttempts} failed: ${failure.message}. Retrying.`);
+    await delay(attempt * 5000);
+  }
+}
 
 const adapter = await readFile('archive-api.js', 'utf8');
 const endpoint = adapter.match(/var endpoint = '(https:\/\/script\.google\.com\/[^']+)'/)[1];
 const callback = 'archiveCallback_pagesBuild';
 const url = new URL(endpoint);
 url.search = new URLSearchParams({ action: 'archive-data', callback });
-const response = await fetch(url, { signal: AbortSignal.timeout(45000) });
-if (!response.ok) throw new Error(`Archive API returned HTTP ${response.status}`);
-
-const body = (await response.text()).trim();
+const body = (await fetchSnapshot(url)).trim();
 if (!body.startsWith(callback + '(') || !body.endsWith(');')) {
   throw new Error('Archive API did not return the expected callback');
 }
